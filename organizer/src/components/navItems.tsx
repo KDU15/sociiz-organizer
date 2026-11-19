@@ -57,23 +57,6 @@ export const navItems: NavItem[] = [
     icon: svg(<path d="M3 17h14M5.5 14v-4M10 14V5M14.5 14V8" />),
   },
   {
-    to: '/publicacoes',
-    label: 'Publicações',
-    icon: svg(<path d="M10 3v9M6.5 8.5 10 12l3.5-3.5M4 16h12" />),
-  },
-  {
-    to: '/decisoes-tecnicas',
-    label: 'Decisões técnicas',
-    icon: svg(
-      <>
-        <circle cx="5.5" cy="5" r="2" />
-        <circle cx="5.5" cy="15" r="2" />
-        <circle cx="14.5" cy="10" r="2" />
-        <path d="M5.5 7v6M7.5 5.5c3.5 0 5.5 1.2 6.2 2.8" />
-      </>,
-    ),
-  },
-  {
     to: '/templates-docs',
     label: 'Templates e docs',
     icon: svg(

@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Valores de estado, categoria, urgência, severidade etc. são strings validadas na API (DTOs),
+// para manter exatamente os mesmos rótulos usados pelo front.
+
+model Usuario {
+  id           String   @id
+  nome         String
+  cargo        String
+  email        String   @unique
+  notificacoes Json
+  atualizadoEm DateTime @updatedAt
+}
+
+model Projeto {
+  id          String @id // slug, ex.: controle-de-acesso
+  sigla       String
+  nome        String
+  stack       String
+  tipo        String
+  status      String
+  versao      String
+  deploy      String
+  responsavel String
+  criticidade String
+  saude       String
+  saudeLabel  String
+  tile        String
+  detalhe     Json? // ficha, ambientes, dependências, versões e docs
+}
+
+model Demanda {
+  id          String          @id // SOC-124
+  titulo      String
+  projeto     String
+  categoria   String
+  iniciais    String          @default("")
+  papel       String          @default("")
+  estado      String
+  urgencia    String
+  descricao   String          @default("")
+  criterios   Json            @default("[]") // [{ texto, feito }]
+  vinculados  Json            @default("[]") // [{ nome, meta, tom, tipo }]
+  responsavel String          @default("—")
+  revisor     String          @default("—")
+  solicitante String          @default("—")
+  impacto     String?
+  estimativa  String          @default("—")
+  previsao    String          @default("—")
+  ambiente    String          @default("—")
+  leadTime    String?
+  cycleTime   String?
+  criadoEm    DateTime        @default(now())
+  historico   DemandaEvento[]
+  incidentes  Incidente[]
+
+  @@index([estado])
+  @@index([projeto])
+}
+
+model DemandaEvento {
+  id        Int      @id @default(autoincrement())
+  demandaId String
+  demanda   Demanda  @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  estado    String
+  meta      String
+  criadoEm  DateTime @default(now())
+
+  @@index([demandaId, criadoEm])
+}
+
+model Incidente {
+  id           String            @id // INC-014
+  titulo       String
+  projeto      String
+  severidade   String
+  status       String
+  inicio       DateTime
+  resolvidoEm  DateTime?
+  responsavel  String?
+  impacto      String
+  descricao    String
+  causaRaiz    String?
+  acoes        Json              @default("[]") // [{ texto, feito }]
+  demandaId    String?
+  demanda      Demanda?          @relation(fields: [demandaId], references: [id], onDelete: SetNull)
+  linhaDoTempo IncidenteEvento[]
+
+  @@index([status])
+}
+
+model IncidenteEvento {
+  id          Int       @id @default(autoincrement())
+  incidenteId String
+  incidente   Incidente @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
+  quando      DateTime
+  texto       String
+
+  @@index([incidenteId, quando])
+}
+
+model Recurso {
+  id          String   @id
+  categoria   String
+  titulo      String
+  descricao   String
+  tags        String[]
+  responsavel String
+  atualizado  String
+  href        String
+
+  @@index([categoria])
+}

@@ -2,6 +2,34 @@
 
 Registro das alterações feitas no projeto, da mais recente para a mais antiga.
 
+## 2026-11-19 · Servidor NestJS com Postgres e Prisma
+
+Alterações ainda não commitadas. Nova pasta `serve/`, ao lado de `organizer/`.
+
+- API em **NestJS 11** com prefixo `/api`, validação global (`class-validator`), CORS configurável e `.env` (`PORT`, `CORS_ORIGIN`, `DATABASE_URL`).
+- Módulos: health, demandas, incidentes, projetos, recursos e perfil. Rotas listadas em `projeto.md` e em `serve/README.md`.
+- Persistência em **PostgreSQL 16** (`docker-compose.yml`) com **Prisma 6** (versão estável; a 8 ainda é release candidate). Schema com `Usuario`, `Projeto`, `Demanda`, `DemandaEvento`, `Incidente`, `IncidenteEvento` e `Recurso`; migration `init` aplicada.
+- Seed (`prisma/seed.ts`) importa os dados de exemplo do front: 9 projetos, 17 recursos, 15 demandas e 4 incidentes.
+- Versão inicial usava armazenamento em memória; foi trocada pelo `PrismaService` na mesma sessão.
+- Conferido contra um Postgres real: listagem e ficha de demanda (critérios e histórico), criar, mover e apagar demanda, resolver incidente (preenche `resolvidoEm` e a linha do tempo), filtro de recursos, projetos sem e com `detalhe`, perfil e validação de campos inválidos.
+- Limites: o front ainda não usa a API; o perfil usa um usuário fixo; `projeto` em demanda e incidente é texto, sem chave estrangeira.
+
+## 2026-11-19 · Visão geral
+
+Alterações ainda não commitadas.
+
+- A rota `/visao-geral` deixou de ser placeholder (`views/VisaoGeral.tsx`): cartões de resumo clicáveis (demandas abertas, urgência alta ou crítica, incidentes abertos, projetos com atenção), demandas por etapa em barras, minhas demandas, incidentes recentes, lista de projetos e atalhos para nova demanda e novo incidente.
+- Estilos novos no fim de `globals.css` (`.vg-*`).
+- Conferido: `tsc` sem erros e a página responde 200 com os blocos no HTML. Não olhei a tela no navegador.
+- "Minhas demandas" compara o responsável com o nome ou o cargo do perfil, então pode aparecer vazio nos dados de exemplo.
+
+## 2026-11-19 · Side menu: remoção de Publicações e Decisões técnicas
+
+Alterações ainda não commitadas.
+
+- Os itens "Publicações" e "Decisões técnicas" saíram do side menu (`components/navItems.tsx`).
+- As rotas `/publicacoes` e `/decisoes-tecnicas` continuam existindo como placeholder.
+
 ## 2026-11-19 · Migração para Next.js
 
 Commit separado, a partir do commit `080f343`.
