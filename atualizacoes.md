@@ -2,6 +2,18 @@
 
 Registro das alterações feitas no projeto, da mais recente para a mais antiga.
 
+## 2026-11-19 · Migração para Next.js
+
+Commit separado, a partir do commit `080f343`.
+
+- A aplicação saiu de React 18 + Vite + React Router e foi migrada para **Next.js 16 (App Router) com React 19**.
+- Rotas: `App.tsx` foi substituído por pastas em `src/app` (`(app)` agrupa as rotas com side menu; `login` fica fora). As telas de `src/pages` foram movidas para `src/views`, com `'use client'`, e cada rota tem um `page.tsx` que as renderiza. Dinâmicas: `/quadro/[id]`, `/projetos/[id]`, `/incidentes/[id]`.
+- `Link`, `useNavigate` e `useParams` passaram para `next/link` e `next/navigation`; o destaque do menu usa `usePathname`; o antigo `<Navigate>` virou `components/Redirecionar.tsx`.
+- Logo e marca foram para `public/`; as fontes são carregadas no `layout.tsx`; `/` e rotas inexistentes levam ao login.
+- Os contextos (demandas, incidentes, perfil) e os favoritos agora leem o `localStorage` depois de montar e expõem `pronto`, evitando divergência de hidratação; as fichas aguardam esse sinal antes de redirecionar.
+- Removidos: Vite, React Router, `index.html`, `vite.config.ts` e `tsconfig.tsbuildinfo`. Adicionados: `next.config.ts`, alias `@/*`, `.gitignore` com `.next`.
+- Conferido: `next build` sem erros, todas as rotas respondendo e o quadro e a ficha da demanda renderizando no navegador sem erros no console. Não percorri todas as telas.
+
 ## 2026-11-19 · Correção: side menu acompanhando a altura da página
 
 - O side menu esticava junto com o conteúdo e, em páginas longas, o avatar ia parar no fim da página. Agora ele é fixo (`position: sticky`) com a altura da janela e permanece visível enquanto o conteúdo rola (`styles.css`).

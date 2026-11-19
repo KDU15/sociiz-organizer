@@ -1,3 +1,5 @@
+'use client'
+
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { incidentesIniciais, statusFluxo, type Incidente, type Severidade, type StatusIncidente } from './incidentes'
 
@@ -7,6 +9,7 @@ type Novo = { titulo: string; projeto: string; severidade: Severidade; descricao
 
 type Ctx = {
   incidentes: Incidente[]
+  pronto: boolean
   criar: (n: Novo) => Incidente
   mudarStatus: (id: string, status: StatusIncidente) => void
   alternarAcao: (id: string, indice: number) => void
@@ -25,17 +28,24 @@ function carregar(): Incidente[] {
 }
 
 export function IncidentesProvider({ children }: { children: ReactNode }) {
-  const [incidentes, setIncidentes] = useState<Incidente[]>(carregar)
+  const [incidentes, setIncidentes] = useState<Incidente[]>(incidentesIniciais)
+  const [pronto, setPronto] = useState(false)
   const ref = useRef(incidentes)
   ref.current = incidentes
 
   useEffect(() => {
+    setIncidentes(carregar())
+    setPronto(true)
+  }, [])
+
+  useEffect(() => {
+    if (!pronto) return
     try {
       localStorage.setItem(KEY, JSON.stringify(incidentes))
     } catch {
       /* ignora */
     }
-  }, [incidentes])
+  }, [incidentes, pronto])
 
   const criar = useCallback<Ctx['criar']>((n) => {
     const proximo = Math.max(0, ...ref.current.map((i) => Number(i.id.replace('INC-', '')) || 0)) + 1
@@ -81,7 +91,7 @@ export function IncidentesProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
-  const value = useMemo(() => ({ incidentes, criar, mudarStatus, alternarAcao }), [incidentes, criar, mudarStatus, alternarAcao])
+  const value = useMemo(() => ({ incidentes, pronto, criar, mudarStatus, alternarAcao }), [incidentes, pronto, criar, mudarStatus, alternarAcao])
   return <IncidentesContext.Provider value={value}>{children}</IncidentesContext.Provider>
 }
 

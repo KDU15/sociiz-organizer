@@ -4,10 +4,8 @@ Aplicação interna da Sociiz para a equipe de desenvolvimento acompanhar demand
 
 ## Stack
 
-- React 18 + TypeScript
-- Vite 5
-- React Router 6
-- CSS puro (`organizer/src/styles.css`), com tokens do Spectrum 2
+- Next.js 16 (App Router) + React 19 + TypeScript
+- CSS puro (`organizer/src/app/globals.css`), com tokens do Spectrum 2
 
 ## Como rodar
 
@@ -15,7 +13,8 @@ Aplicação interna da Sociiz para a equipe de desenvolvimento acompanhar demand
 cd organizer
 npm install
 npm run dev      # servidor de desenvolvimento
-npm run build    # tsc -b && vite build
+npm run build    # build de produção
+npm run start    # serve o build
 ```
 
 ## Estrutura
@@ -23,38 +22,22 @@ npm run build    # tsc -b && vite build
 ```
 design/                      Design em HTML empacotado (telas de referência)
 organizer/
+  public/                    Logo e marca da Sociiz
   src/
-    App.tsx                  Rotas
-    components/
-      AppLayout.tsx          Shell: side menu + conteúdo
-      SideMenu.tsx           Menu lateral (coluna de ícones, 72px)
-      ProfileMenu.tsx        Popup do perfil (configurações e sair)
-      navItems.tsx           Itens do menu e ícones
-    pages/
-      Login.tsx
-      Quadro.tsx             Quadro de demandas
-      DemandaDetalhe.tsx     Ficha da demanda
-      NovaDemanda.tsx        Formulário de nova demanda
-      Perfil.tsx             Configurações do perfil
-      Backlog.tsx            Backlog priorizável
-      Incidentes.tsx         Lista de incidentes
-      IncidenteDetalhe.tsx   Ficha do incidente
-      NovoIncidente.tsx      Registro de incidente
-      TemplatesDocs.tsx      Biblioteca de templates e docs
-      Projetos.tsx           Lista de projetos
-      ProjetoDetalhe.tsx     Ficha do projeto (5 abas)
-      Placeholder.tsx        Telas ainda não desenvolvidas
-    data/projetos.ts         Dados de exemplo dos projetos
-    data/incidentes.ts       Incidentes de exemplo e fluxo de status
-    data/IncidentesContext.tsx Estado dos incidentes (localStorage)
-    data/recursos.ts         Recursos de templates e docs
-    data/PerfilContext.tsx   Perfil do usuário (localStorage)
-    data/demandas.ts         Etapas, categorias e demandas de exemplo
-    data/DemandasContext.tsx Estado das demandas (localStorage)
-    assets/                  Logo e marca da Sociiz
+    app/                     Rotas (App Router)
+      layout.tsx             Layout raiz (html, fontes, estilos)
+      globals.css            Estilos globais
+      login/                 Entrar
+      (app)/                 Rotas com side menu (layout.tsx = AppLayout)
+        quadro/ backlog/ projetos/ incidentes/ templates-docs/ perfil/ ...
+    views/                   Telas (componentes cliente), uma por rota
+    components/              AppLayout, SideMenu, ProfileMenu, navItems, Redirecionar
+    data/                    Dados de exemplo e contextos (estado no localStorage)
 ```
 
 ## Rotas
+
+Cada rota é uma pasta em `src/app` com um `page.tsx` que renderiza a tela correspondente de `src/views`. O alias `@/` aponta para `src/`.
 
 | Rota | Tela | Situação |
 |---|---|---|
@@ -113,6 +96,10 @@ Registra problemas que afetam a operação: severidade (Crítica a Baixa), statu
 
 Biblioteca de conhecimento da equipe, organizada em Skills de desenvolvimento, Padrões de projeto, Templates, Storybooks, Design systems e Guias e runbooks. Tem busca, filtro por categoria e favoritos. O conteúdo hoje é fixo em `data/recursos.ts` e os links ainda não apontam para destinos reais.
 
+## Estado no navegador
+
+As demandas, os incidentes, o perfil e os favoritos ficam no `localStorage`. Para evitar divergência na hidratação do Next.js, os contextos começam com os dados de exemplo e leem o valor salvo depois de montar (`pronto`). As fichas só decidem que um item não existe depois disso.
+
 ## Plano: integração com o GitHub
 
 **Objetivo:** ligar cada projeto ao repositório da aplicação no GitHub e acompanhar as alterações dentro do Organizer.
@@ -128,7 +115,7 @@ Biblioteca de conhecimento da equipe, organizada em Skills de desenvolvimento, P
 ### Como conectar
 
 1. **API REST direto do navegador.** Mais rápida, mas só serve para repositórios públicos ou com token do usuário no navegador, tem limite de requisições e é frágil com repositórios privados.
-2. **Backend (proxy) com GitHub App ou token somente leitura.** O front chama `/api/projetos/:id/github`, o backend consulta o GitHub e guarda em cache. É mais seguro e funciona com repositórios privados. **Opção recomendada.**
+2. **Route handlers do Next.js (`src/app/api`) com GitHub App ou token somente leitura.** O front chama `/api/projetos/:id/github`, o backend consulta o GitHub e guarda em cache. É mais seguro e funciona com repositórios privados. **Opção recomendada.**
 3. **Webhooks do GitHub para o backend**, que grava os eventos (push, release, PR, workflow) e deixa o acompanhamento quase em tempo real. Pode vir depois da opção 2.
 
 O token do GitHub nunca deve ficar no front-end.
@@ -136,7 +123,7 @@ O token do GitHub nunca deve ficar no front-end.
 ### Primeiros passos
 
 1. Acrescentar o campo `repo: 'org/nome'` em cada projeto em `src/data/projetos.ts`.
-2. Criar o backend (por exemplo `server/` em Node) com um endpoint por projeto.
+2. Criar os route handlers do Next.js (`src/app/api/...`) com um endpoint por projeto.
 3. Mostrar na ficha um bloco "Atividade no GitHub" com commits, PRs, última release e status do CI.
 4. Preencher a aba "Versões" com as releases e tags reais.
 5. Depois, adicionar webhooks.
@@ -144,7 +131,6 @@ O token do GitHub nunca deve ficar no front-end.
 ### Pendências de decisão
 
 - Os repositórios são privados e ficam em uma organização do GitHub?
-- Já existe um backend ou será criado um novo?
 - Começar só com leitura ou já com webhooks?
 
 ## Próximos passos

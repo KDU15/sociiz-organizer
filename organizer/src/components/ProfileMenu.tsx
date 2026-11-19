@@ -1,10 +1,13 @@
+'use client'
+
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { usePerfil } from '../data/PerfilContext'
 
 export default function ProfileMenu() {
   const { perfil, iniciais } = usePerfil()
-  const navigate = useNavigate()
+  const router = useRouter()
   const [aberto, setAberto] = useState(false)
   const raiz = useRef<HTMLDivElement>(null)
   const botao = useRef<HTMLButtonElement>(null)
@@ -60,7 +63,7 @@ export default function ProfileMenu() {
             </div>
           </div>
           <div className="popup__sep" role="separator" />
-          <Link to="/perfil" role="menuitem" className="popup__item" onClick={() => fechar(false)}>
+          <Link href="/perfil" role="menuitem" className="popup__item" onClick={() => fechar(false)}>
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="10" cy="10" r="2.5" />
               <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" />
@@ -73,7 +76,7 @@ export default function ProfileMenu() {
             className="popup__item popup__item--danger"
             onClick={() => {
               setAberto(false)
-              navigate('/login')
+              router.push('/login')
             }}
           >
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">

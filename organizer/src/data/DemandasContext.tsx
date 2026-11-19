@@ -1,3 +1,5 @@
+'use client'
+
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { demandasIniciais, estados, type Categoria, type Demanda, type Estado, type Urgencia } from './demandas'
 
@@ -15,6 +17,8 @@ type NovaDemanda = {
 
 type Ctx = {
   demandas: Demanda[]
+  /** false até os dados salvos no navegador serem lidos (evita divergência na hidratação). */
+  pronto: boolean
   criar: (d: NovaDemanda) => Demanda
   mover: (id: string, para: Estado) => void
   alternarCriterio: (id: string, indice: number) => void
@@ -36,18 +40,25 @@ function carregar(): Demanda[] {
 const hoje = () => new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 
 export function DemandasProvider({ children }: { children: ReactNode }) {
-  const [demandas, setDemandas] = useState<Demanda[]>(carregar)
+  const [demandas, setDemandas] = useState<Demanda[]>(demandasIniciais)
+  const [pronto, setPronto] = useState(false)
 
   const ref = useRef(demandas)
   ref.current = demandas
 
   useEffect(() => {
+    setDemandas(carregar())
+    setPronto(true)
+  }, [])
+
+  useEffect(() => {
+    if (!pronto) return
     try {
       localStorage.setItem(KEY, JSON.stringify(demandas))
     } catch {
       /* ignora */
     }
-  }, [demandas])
+  }, [demandas, pronto])
 
   const criar = useCallback<Ctx['criar']>((n) => {
     const proximo = Math.max(0, ...ref.current.map((d) => Number(d.id.replace('SOC-', '')) || 0)) + 1
@@ -100,8 +111,8 @@ export function DemandasProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ demandas, criar, mover, alternarCriterio, definirUrgencia }),
-    [demandas, criar, mover, alternarCriterio, definirUrgencia],
+    () => ({ demandas, pronto, criar, mover, alternarCriterio, definirUrgencia }),
+    [demandas, pronto, criar, mover, alternarCriterio, definirUrgencia],
   )
   return <DemandasContext.Provider value={value}>{children}</DemandasContext.Provider>
 }

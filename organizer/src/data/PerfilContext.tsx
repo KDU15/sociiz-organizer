@@ -1,3 +1,5 @@
+'use client'
+
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 const KEY = 'organizer:perfil:v1'
@@ -16,7 +18,7 @@ const padrao: Perfil = {
   notificacoes: { incidentes: true, demandas: true, publicacoes: false },
 }
 
-type Ctx = { perfil: Perfil; salvar: (p: Perfil) => void; iniciais: string }
+type Ctx = { pronto: boolean; perfil: Perfil; salvar: (p: Perfil) => void; iniciais: string }
 const PerfilContext = createContext<Ctx | null>(null)
 
 function carregar(): Perfil {
@@ -42,18 +44,25 @@ export const iniciaisDe = (nome: string) =>
     .join('') || '?'
 
 export function PerfilProvider({ children }: { children: ReactNode }) {
-  const [perfil, setPerfil] = useState<Perfil>(carregar)
+  const [perfil, setPerfil] = useState<Perfil>(padrao)
+  const [pronto, setPronto] = useState(false)
 
   useEffect(() => {
+    setPerfil(carregar())
+    setPronto(true)
+  }, [])
+
+  useEffect(() => {
+    if (!pronto) return
     try {
       localStorage.setItem(KEY, JSON.stringify(perfil))
     } catch {
       /* ignora */
     }
-  }, [perfil])
+  }, [perfil, pronto])
 
   const salvar = useCallback((p: Perfil) => setPerfil(p), [])
-  const value = useMemo(() => ({ perfil, salvar, iniciais: iniciaisDe(perfil.nome) }), [perfil, salvar])
+  const value = useMemo(() => ({ pronto, perfil, salvar, iniciais: iniciaisDe(perfil.nome) }), [pronto, perfil, salvar])
   return <PerfilContext.Provider value={value}>{children}</PerfilContext.Provider>
 }
 
