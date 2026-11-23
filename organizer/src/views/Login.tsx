@@ -26,10 +26,6 @@ export default function Login() {
 
       <main className="login__panel">
         <form className="login__form enter enter-2" onSubmit={onSubmit}>
-          <div className="login__heading">
-            <h1>Entrar no Organizer</h1>
-            <p>Use sua conta da Sociiz.</p>
-          </div>
 
           <label className="field">
             <span className="label">E-mail</span>

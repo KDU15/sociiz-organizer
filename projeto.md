@@ -173,9 +173,90 @@ O token do GitHub nunca deve ficar no front-end.
 - Os repositórios são privados e ficam em uma organização do GitHub?
 - Começar só com leitura ou já com webhooks?
 
+## Plano: integrações com Sentry e PostHog
+
+Duas plataformas externas alimentam o Organizer. Não duplicar funções: cada uma é a fonte de uma área.
+
+- **Sentry** (saúde técnica): erros, performance, releases, uptime e crons. Fonte de **incidentes**, **publicações** e dos indicadores técnicos.
+- **PostHog** (comportamento do produto): analytics, funis, feature flags, experimentos e surveys. Fonte dos **indicadores de negócio** e de **demandas**.
+- Usar o mesmo identificador de usuário nos dois (`user.id` no Sentry, `distinct_id` no PostHog) para pular de um erro às sessões do usuário.
+- Usar o `projeto` do Organizer como propriedade/tag (`project`, `release`, `environment`) nos eventos das duas ferramentas, para cruzar os dados.
+
+### Sentry: o que trazer
+
+| Funcionalidade | Onde entra | Como |
+|---|---|---|
+| Issues (erros agrupados) | `/incidentes` | Webhook de issue criada ou regressão abre um incidente (projeto, severidade, ocorrências, usuários afetados, link). Resolver no Organizer resolve no Sentry. Deduplicar por id do issue. |
+| Releases e commits | `/publicacoes` | Cada deploy vira uma publicação, com erros novos e corrigidos da versão. |
+| Ownership | Responsável do incidente | Preenche `responsavel` com o dono sugerido (CODEOWNERS). |
+| Issue → demanda | Quadro e Backlog | Botão "Criar demanda a partir do erro", com link nos dois sentidos. |
+| Cron monitors | `/projetos/:id` | Status de jobs agendados (rodou, atrasou, falhou). |
+| Uptime | Visão geral e projetos | Online/offline por projeto; queda vira incidente. |
+| Performance e traces | `/indicadores` | p95 de latência, Apdex, throughput, transações lentas. |
+| Release health | `/indicadores` | Crash-free sessions e users por release. |
+| Regras de alerta | Visão geral | Alertas viram cartões de atenção e incidentes. |
+| Feedback de usuário | Backlog | Widget vira demanda com origem "Usuário". |
+| Seer (IA) | Ficha do incidente | Causa raiz e sugestão de correção. |
+| Replays, logs, profiling | Ficha do incidente | Links de contexto do período do erro. |
+
+### PostHog: o que trazer
+
+| Funcionalidade | Onde entra | Como |
+|---|---|---|
+| Error tracking | `/incidentes` | Só se o Sentry não cobrir o projeto; mesmo fluxo do webhook. |
+| Product e web analytics | `/indicadores` e `/projetos/:id` | Usuários ativos, eventos, conversão e web vitals por projeto, via API de Query (HogQL) ou Endpoints. |
+| Feature flags | Ficha do projeto e da demanda | Vincular demanda a flag ("Em rollout 25%"); só concluir a demanda quando a flag chega a 100%. |
+| Session replay | Ficha do incidente | Botão "ver sessões afetadas". |
+| Experimentos | Demanda tipo "hipótese" e decisões técnicas | Resultado do teste (ganhou/perdeu) anexado e registrado. |
+| Surveys | Backlog | Respostas viram demandas com origem "Survey". |
+| Alertas | Visão geral | Queda de conversão ou pico de erro vira cartão de atenção ou incidente. |
+| Logs e tracing | Ficha do incidente | Link para os logs do período. |
+| Annotations | `/publicacoes` | Marca o release no gráfico para medir o impacto. |
+| MCP (`mcp.posthog.com/mcp`) | Fluxo de desenvolvimento | Consultar os dados direto do Claude Code ao trabalhar numa demanda. |
+| `posthog-js` no próprio Organizer | Uso interno | Ver quais telas a equipe usa. |
+
+### Conceitos para copiar (sem depender das ferramentas)
+
+- **Agrupamento por fingerprint:** ocorrências repetidas entram no mesmo incidente (contador e "visto por último").
+- **Estados de incidente:** novo, em andamento, resolvido, ignorado, regressão; reabrir sozinho se o erro voltar.
+- **Inbox de triagem:** fila de incidentes sem responsável.
+- **Digests:** resumo diário ou semanal por e-mail ou Slack.
+- **Self-driving (PostHog):** sinais (erros, rage clicks) viram relatório com sugestão de correção no backlog.
+
+### Arquitetura
+
+1. **Apps monitoradas:** `npx @sentry/wizard@latest -i nextjs` (ou SDK de Node/Nest) e `npx @posthog/wizard@latest`, com `release` e `environment` preenchidos no deploy.
+2. **`serve/` (NestJS)**: novo módulo `integracoes`:
+   - `POST /api/webhooks/sentry` (valida `sentry-hook-signature`) e `POST /api/webhooks/posthog`;
+   - clientes das APIs REST (Sentry) e Query/HogQL (PostHog), com cache;
+   - tabelas Prisma `Integracao` (provedor, projetoId, host, config cifrada) e `IncidenteExterno` (incidenteId, provedor, idExterno, url).
+3. **`organizer/`**: lê tudo pelo `serve/`; tokens e chaves nunca ficam no navegador.
+4. **Sentry:** criar uma *Internal Integration* (token e webhook sem OAuth). Preferir o SaaS na região UE (o self-host é pesado) se houver LGPD.
+5. **PostHog:** preferir Cloud (EU se LGPD). O self-host serve só até cerca de 100 mil eventos por mês e sem suporte.
+
+### Pré-requisito
+
+Hoje `projeto` em demanda e incidente é texto, sem chave estrangeira. Trocar por relação com `Projeto` antes de mapear projeto ↔ Sentry/PostHog.
+
+### Primeiros passos
+
+1. Chave estrangeira de projeto e módulo `integracoes` com `Integracao` e `IncidenteExterno`.
+2. Webhook do Sentry → incidente, com deduplicação.
+3. Sentry releases → Publicações.
+4. Indicadores: Sentry (saúde técnica) e PostHog (produto) por projeto.
+5. Feature flags e experimentos do PostHog ligados a demandas.
+6. Alertas, surveys e feedback entrando no backlog; depois os conceitos de fingerprint, estados e digests.
+
+### Pendências de decisão
+
+- Sentry SaaS ou self-host? PostHog Cloud (US/EU) ou self-host?
+- Quais apps enviam dados (Next, Nest, outras)?
+- Erros ficam só no Sentry ou também no PostHog?
+
 ## Próximos passos
 
 - Conectar o front à API do `serve/` e abandonar os dados fixos e o `localStorage`.
 - Autenticação real (OIDC) no login e no `serve/`.
 - Desenvolver Indicadores. Publicações e Decisões técnicas saíram do menu; as rotas continuam como placeholder e podem ser removidas.
 - Integração com o GitHub, conforme o plano acima.
+- Integrações com Sentry (incidentes, publicações, performance) e PostHog (indicadores, flags, experimentos), conforme o plano acima.
